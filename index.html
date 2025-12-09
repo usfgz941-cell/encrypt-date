@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 添加了一个锁头图标，让本地运行时标签页更好看 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+    <title>全唯一日期加密器 (Local App)</title>
+    <style>
+        :root {
+            --primary: #00ff41;
+            --bg: #0d1117;
+            --panel: #161b22;
+            --text: #c9d1d9;
+            --border: #30363d;
+            --error: #ff4444;
+            --accent: #2ea043;
+        }
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: var(--panel);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            max-width: 550px;
+            width: 100%;
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            font-size: 0.8rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 10px;
+        }
+        
+        /* Tabs Styles */
+        .tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            background: #000;
+            border-radius: 6px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #8b949e;
+            padding: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: #000;
+            font-weight: bold;
+        }
+        .tab-btn:hover:not(.active) {
+            color: var(--text);
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .panel {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .panel.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .input-wrapper {
+            flex: 1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+        input, select {
+            width: 100%;
+            background-color: #0d1117;
+            border: 1px solid var(--border);
+            color: var(--primary);
+            padding: 12px;
+            font-family: inherit;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.2);
+        }
+        button.action-btn {
+            width: 100%;
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-top: 10px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button.action-btn:hover {
+            background-color: #26a641;
+            transform: translateY(-1px);
+        }
+        button.secondary {
+            width: 100%;
+            background-color: transparent;
+            border: 1px dashed var(--border);
+            color: #8b949e;
+            padding: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        button.secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .result-box {
+            margin-top: 1.5rem;
+            text-align: center;
+            background-color: #000;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            position: relative;
+            display: none;
+        }
+        .result-label {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary);
+            color: #000;
+            padding: 2px 12px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .cipher-text {
+            font-size: 3.5rem;
+            color: var(--primary);
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+            word-break: break-all;
+            line-height: 1.2;
+        }
+        .debug-info {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #8b949e;
+            border-top: 1px solid #1f2933;
+            padding-top: 10px;
+            line-height: 1.5;
+        }
+        .highlight {
+            color: #fff;
+            font-weight: bold;
+        }
+        .status-badge {
+            display: inline-block;
+            background: #1f6feb;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        /* Symbol Grid */
+        .symbol-grid {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+        }
+        .symbol-item {
+            background: #161b22;
+            border: 1px solid #30363d;
+            text-align: center;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: #8b949e;
+            border-radius: 4px;
+        }
+        .symbol-char {
+            display: block;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        
+        .symbol-input {
+            font-size: 1.5rem;
+            letter-spacing: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Unique Date Cipher</h1>
+    <div class="subtitle">366天唯一对应 · 20符号Base系统</div>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('encrypt')">🔒 加密 (日期 ➔ 符号)</button>
+        <button class="tab-btn" onclick="switchTab('decrypt')">🔓 解密 (符号 ➔ 日期)</button>
+    </div>
+
+    <!-- ENCRYPT PANEL -->
+    <div id="encrypt-panel" class="panel active">
+        <!-- 自动识别提示 -->
+        <button class="secondary" onclick="setToday(true)">
+            📅 重置为今天 <span class="status-badge" id="auto-badge" style="display:none">已自动识别</span>
+        </button>
+
+        <div class="input-group">
+            <div class="input-wrapper">
+                <label>月份</label>
+                <select id="e_month" onchange="updateMaxDays(); hideAutoBadge();">
+                    <!-- JS will fill -->
+                </select>
+            </div>
+            <div class="input-wrapper">
+                <label>日期</label>
+                <input type="number" id="e_day" min="1" max="31" value="1" oninput="hideAutoBadge()">
+            </div>
+        </div>
+
+        <button class="action-btn" onclick="encrypt()">生成唯一代码</button>
+        
+        <div class="result-box" id="e_resultArea">
+            <span class="result-label">ENCRYPTED</span>
+            <div class="cipher-text" id="e_output"></div>
+            <div class="debug-info" id="e_debug"></div>
+        </div>
+    </div>
+
+    <!-- DECRYPT PANEL -->
+    <div id="decrypt-panel" class="panel">
+        <div class="input-wrapper" style="margin-bottom: 1rem;">
+            <label>输入两位符号 (例如: #+ )</label>
+            <input type="text" id="d_symbols" class="symbol-input" placeholder="??" maxlength="2" autocomplete="off">
+        </div>
+
+        <button class="action-btn" onclick="decrypt()">解密日期</button>
+
+        <div class="result-box" id="d_resultArea">
+            <span class="result-label">DECRYPTED</span>
+            <div class="cipher-text" id="d_output"></div>
+            <div class="debug-info" id="d_debug"></div>
+        </div>
+    </div>
+
+    <!-- Symbol Reference -->
+    <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <label style="text-align: center; margin-bottom: 10px;">符号索引表 (20 Symbols)</label>
+        <div class="symbol-grid" id="symbolTable">
+            <!-- JS Generated -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 核心配置 ---
+    const SYMBOL_SET = [
+        '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', 
+        '_', '+', '=', '-', '[', ']', '{', '}', '<', '>'
+    ];
+    
+    // 每个月的天数
+    const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; 
+
+    // 初始化
+    window.onload = function() {
+        initUI();
+        setToday(true); // 打开网页时，自动设为今天并计算
+    };
+
+    function initUI() {
+        // 填充月份下拉
+        const select = document.getElementById('e_month');
+        for(let i=1; i<=12; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = i + "月";
+            select.appendChild(opt);
+        }
+
+        // 填充符号表展示
+        const grid = document.getElementById('symbolTable');
+        SYMBOL_SET.forEach((char, index) => {
+            const div = document.createElement('div');
+            div.className = 'symbol-item';
+            div.innerHTML = `<span class="symbol-char">${char}</span>${index}`;
+            grid.appendChild(div);
+        });
+    }
+
+    // --- 逻辑函数 ---
+
+    function getDayOfYear(month, day) {
+        let dayCount = 0;
+        for (let i = 0; i < month - 1; i++) {
+            dayCount += DAYS_IN_MONTH[i];
+        }
+        return dayCount + day - 1; 
+    }
+
+    function getDateFromDayOfYear(dayIndex) {
+        let remainingDays = dayIndex;
+        for (let i = 0; i < 12; i++) {
+            if (remainingDays < DAYS_IN_MONTH[i]) {
+                return { month: i + 1, day: remainingDays + 1 };
+            }
+            remainingDays -= DAYS_IN_MONTH[i];
+        }
+        return null; 
+    }
+
+    function encrypt() {
+        const month = parseInt(document.getElementById('e_month').value);
+        let day = parseInt(document.getElementById('e_day').value);
+        
+        const maxDay = DAYS_IN_MONTH[month-1];
+        if (day > maxDay) {
+            alert(`${month}月最多只有${maxDay}天`);
+            return;
+        }
+
+        const dayIndex = getDayOfYear(month, day);
+        const highVal = Math.floor(dayIndex / 20);
+        const lowVal = dayIndex % 20;
+
+        const char1 = SYMBOL_SET[highVal];
+        const char2 = SYMBOL_SET[lowVal];
+
+        document.getElementById('e_resultArea').style.display = 'block';
+        document.getElementById('e_output').innerText = char1 + char2;
+        
+        document.getElementById('e_debug').innerHTML = `
+            日期索引: <span class="highlight">第 ${dayIndex + 1} 天</span><br>
+            计算: ${dayIndex} ÷ 20 = ${highVal} ... ${lowVal}<br>
+            [${highVal}]对应 <b>${char1}</b>, [${lowVal}]对应 <b>${char2}</b>
+        `;
+    }
+
+    function decrypt() {
+        const input = document.getElementById('d_symbols').value.trim();
+        const outputDiv = document.getElementById('d_output');
+        const debugDiv = document.getElementById('d_debug');
+        const resultBox = document.getElementById('d_resultArea');
+
+        resultBox.style.display = 'block';
+        outputDiv.style.color = 'var(--primary)';
+
+        if (input.length !== 2) {
+            showError("请输入两位符号");
+            return;
+        }
+
+        const char1 = input[0];
+        const char2 = input[1];
+
+        const idx1 = SYMBOL_SET.indexOf(char1);
+        const idx2 = SYMBOL_SET.indexOf(char2);
+
+        if (idx1 === -1 || idx2 === -1) {
+            showError("含有未知符号");
+            debugDiv.innerText = "只能使用下方表格中的20个符号";
+            return;
+        }
+
+        const dayIndex = idx1 * 20 + idx2;
+        const dateObj = getDateFromDayOfYear(dayIndex);
+
+        if (!dateObj) {
+            showError("日期越界");
+            debugDiv.innerText = "算出的天数超过了一年366天";
+            return;
+        }
+
+        outputDiv.innerText = `${dateObj.month}月${dateObj.day}日`;
+        debugDiv.innerHTML = `
+            解析: [${char1}]->${idx1}, [${char2}]->${idx2}<br>
+            索引: ${idx1}×20 + ${idx2} = <span class="highlight">第 ${dayIndex + 1} 天</span>
+        `;
+    }
+
+    function showError(msg) {
+        const outputDiv = document.getElementById('d_output');
+        outputDiv.innerText = msg;
+        outputDiv.style.color = 'var(--error)';
+        document.getElementById('d_debug').innerText = "";
+    }
+
+    // UX Helpers
+    function setToday(autoCalc = false) {
+        const today = new Date();
+        document.getElementById('e_month').value = today.getMonth() + 1;
+        document.getElementById('e_day').value = today.getDate();
+        
+        if (autoCalc) {
+            document.getElementById('auto-badge').style.display = 'inline-block';
+            encrypt(); // 自动执行计算
+        } else {
+            hideAutoBadge();
+        }
+    }
+    
+    function hideAutoBadge() {
+        document.getElementById('auto-badge').style.display = 'none';
+    }
+
+    function switchTab(mode) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+        
+        if (mode === 'encrypt') {
+            document.querySelector('.tab-btn:first-child').classList.add('active');
+            document.getElementById('encrypt-panel').classList.add('active');
+        } else {
+            document.querySelector('.tab-btn:last-child').classList.add('active');
+            document.getElementById('decrypt-panel').classList.add('active');
+        }
+    }
+    
+    function updateMaxDays() {
+        const month = parseInt(document.getElementById('e_month').value);
+        const dayInput = document.getElementById('e_day');
+        dayInput.max = DAYS_IN_MONTH[month-1];
+        if(dayInput.value > dayInput.max) dayInput.value = dayInput.max;
+    }
+</script>
+
+</body>
+</html>
