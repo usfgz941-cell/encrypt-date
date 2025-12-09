@@ -251,6 +251,7 @@
         const dayIndex = getDayOfYear(month, day);
 
         document.getElementById('e_resultArea').style.display = 'block';
+        // innerText 会自动转义，所以这里是安全的
         document.getElementById('e_output').innerText = result;
         document.getElementById('e_debug').innerHTML = `索引: 第${dayIndex+1}天`;
     }
@@ -304,7 +305,6 @@
         grid.innerHTML = '';
 
         for (let m = 1; m <= 12; m++) {
-            // 创建月份卡片
             const card = document.createElement('div');
             card.className = 'month-card';
             
@@ -316,12 +316,17 @@
             const list = document.createElement('div');
             list.className = 'day-list';
 
-            // 填充该月每一天
             for (let d = 1; d <= DAYS_IN_MONTH[m-1]; d++) {
                 const code = calculateSymbols(m, d);
+                // 修复：手动转义HTML特殊字符，防止 '<' 被浏览器识别为标签
+                const safeCode = code.replace(/&/g, "&amp;")
+                                     .replace(/</g, "&lt;")
+                                     .replace(/>/g, "&gt;");
+
                 const item = document.createElement('div');
                 item.className = 'day-item';
-                item.innerHTML = `<span>${d}日</span> <span class="code-val">${code}</span>`;
+                // 使用转义后的 safeCode
+                item.innerHTML = `<span>${d}日</span> <span class="code-val">${safeCode}</span>`;
                 list.appendChild(item);
             }
 
